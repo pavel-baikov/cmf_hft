@@ -65,9 +65,12 @@ half_spread = max(market_spread/2,
 
 With the provided dataset (mid ~0.0103, σ ~9×10⁻⁵ per event, γ=0.08, κ=50000, T=60):
 - `liq_rel ≈ 4×10⁻⁵`, `half_spread ≈ 2×10⁻⁷` (≈ 2 ticks)
-- Per `order_quantity` of inventory, the reservation shifts ~2 ticks, biasing quotes to unwind.
+- Per `order_quantity` (5000 units) of inventory, the absolute reservation skew is
+  `q × γ × σ² × T × reference ≈ 5000 × 0.08 × 8.1×10⁻⁹ × 60 × 0.0103 ≈ 2×10⁻⁶` (≈ **20 ticks**),
+  biasing quotes to unwind.
 
-The extension replaces the pure mid-price reference with a microprice blend:
+The optional microprice-blend extension replaces the pure mid-price reference with an
+imbalance-weighted blend (this is a custom modification, not from a specific published paper):
 
 ```text
 microprice = (ask × bid_size + bid × ask_size) / (bid_size + ask_size)

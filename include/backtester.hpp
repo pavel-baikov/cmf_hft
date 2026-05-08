@@ -200,14 +200,21 @@ public:
                 ? book.best_ask() <= o.price
                 : book.best_bid() >= o.price;
             if (!crosses) continue;
+            // Full-fill-or-nothing depth check. The snapshot shows the current best-level
+            // quantity; skip if it cannot absorb the full order size. The order stays open
+            // and will be re-evaluated on the next snapshot or cancelled at the next refresh.
+            const double avail = o.side == Side::Buy
+                ? book.asks.front().quantity
+                : book.bids.front().quantity;
+            if (avail < o.quantity) continue;
             // Record fill before clearing the slot. If the buffer is exhausted it is a
             // programming error (cap must be >= MAX_OPEN_ORDERS); throw rather than
             // silently dropping a fill and corrupting cash/inventory accounting.
             if (n >= cap) throw std::runtime_error("match_crossing_orders: fill buffer overflow");
-            const double exec_px = o.side == Side::Buy
-                ? std::min(o.price, book.best_ask())
-                : std::max(o.price, book.best_bid());
-            out[n++] = {o.id, o.side, exec_px, o.quantity, book.timestamp};
+            // Resting limit order fills at its own posted price (standard crypto maker
+            // matching). The aggressor receives price improvement if the market gapped;
+            // the maker always transacts at their limit price.
+            out[n++] = {o.id, o.side, o.price, o.quantity, book.timestamp};
             s.used = false;
         }
         return n;
