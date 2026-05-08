@@ -1,0 +1,5 @@
+build/
+__MACOSX/
+.agents/
+.codex/
+MD.zip
