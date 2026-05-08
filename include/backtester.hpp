@@ -149,6 +149,14 @@ inline void validate_config(const EngineConfig& cfg) {
         throw std::runtime_error("gamma must be > 0");
     if (cfg.kappa <= 0.0)
         throw std::runtime_error("kappa must be > 0");
+    if (cfg.order_quantity <= 0.0)
+        throw std::runtime_error("order_quantity must be > 0");
+    if (cfg.inventory_limit <= 0.0)
+        throw std::runtime_error("inventory_limit must be > 0");
+    if (cfg.microprice_weight < 0.0 || cfg.microprice_weight > 1.0)
+        throw std::runtime_error("microprice_weight must be in [0, 1]");
+    if (cfg.volatility_window < 2.0)
+        throw std::runtime_error("volatility_window must be >= 2");
     if (cfg.quote_interval_events == 0)
         throw std::runtime_error("quote_interval_events must be > 0");
     if (cfg.levels == 0)
@@ -200,12 +208,26 @@ public:
                 ? book.best_ask() <= o.price
                 : book.best_bid() >= o.price;
             if (!crosses) continue;
-            // Full-fill-or-nothing depth check. The snapshot shows the current best-level
-            // quantity; skip if it cannot absorb the full order size. The order stays open
-            // and will be re-evaluated on the next snapshot or cancelled at the next refresh.
-            const double avail = o.side == Side::Buy
-                ? book.asks.front().quantity
-                : book.bids.front().quantity;
+            // Full-fill-or-nothing cumulative depth check. Sum displayed quantity across
+            // every level that has crossed through the order price (asks ≤ order_price for
+            // buys; bids ≥ order_price for sells). If the total is below the order size the
+            // order stays open and is re-evaluated on the next snapshot or cancelled at the
+            // next refresh. Using cumulative depth rather than top-of-book-only is the
+            // natural use of the 25 parsed levels for a realistic full-fill model.
+            double avail = 0.0;
+            if (o.side == Side::Buy) {
+                for (const auto& lvl : book.asks) {
+                    if (lvl.price > o.price) break;
+                    avail += lvl.quantity;
+                    if (avail >= o.quantity) break;
+                }
+            } else {
+                for (const auto& lvl : book.bids) {
+                    if (lvl.price < o.price) break;
+                    avail += lvl.quantity;
+                    if (avail >= o.quantity) break;
+                }
+            }
             if (avail < o.quantity) continue;
             // Record fill before clearing the slot. If the buffer is exhausted it is a
             // programming error (cap must be >= MAX_OPEN_ORDERS); throw rather than

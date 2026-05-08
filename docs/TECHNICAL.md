@@ -69,7 +69,8 @@ With the provided dataset (mid ~0.0103, σ ~9×10⁻⁵ per event, γ=0.08, κ=5
   `q × γ × σ² × T × reference ≈ 5000 × 0.08 × 8.1×10⁻⁹ × 60 × 0.0103 ≈ 2×10⁻⁶` (≈ **20 ticks**),
   biasing quotes to unwind.
 
-The optional microprice-blend extension replaces the pure mid-price reference with an
+The optional extension implements the AS 2008 model with a Stoikov (2018) microprice
+reference-price substitution. The pure mid-price reference is replaced with an
 imbalance-weighted blend (microprice as defined by Stoikov, "The micro-price: a high-frequency
 estimator of future prices", Quantitative Finance 18(12), 2018):
 

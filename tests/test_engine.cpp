@@ -127,6 +127,34 @@ static void test_depth_check_fills_when_sufficient() {
     CHECK(n == 1);
 }
 
+static void test_depth_check_cumulative_fills() {
+    TEST("depth check: cumulative depth across crossed levels satisfies order");
+    hft::OrderManager om;
+    om.place(hft::Side::Buy, 0.0105, 300.0, 1000);
+    // Two ask levels cross our bid (0.0100 qty=100 and 0.0103 qty=200); cumulative=300 == need
+    hft::BookSnapshot book;
+    book.timestamp = 1000;
+    book.bids = {{0.0095, 500.0}};
+    book.asks = {{0.0100, 100.0}, {0.0103, 200.0}, {0.0107, 500.0}}; // 0.0107 is above order
+    hft::Fill buf[8];
+    auto n = om.match_crossing_orders(book, buf, 8);
+    CHECK(n == 1);
+}
+
+static void test_depth_check_cumulative_insufficient() {
+    TEST("depth check: cumulative depth across crossed levels below order size, skip");
+    hft::OrderManager om;
+    om.place(hft::Side::Buy, 0.0105, 400.0, 1000);
+    // Same two levels cross (100+200=300), but need 400 — should skip
+    hft::BookSnapshot book;
+    book.timestamp = 1000;
+    book.bids = {{0.0095, 500.0}};
+    book.asks = {{0.0100, 100.0}, {0.0103, 200.0}, {0.0107, 500.0}};
+    hft::Fill buf[8];
+    auto n = om.match_crossing_orders(book, buf, 8);
+    CHECK(n == 0);
+}
+
 static void test_no_fill_when_not_crossing() {
     TEST("no fill when order price does not cross market");
     hft::OrderManager om;
@@ -265,6 +293,8 @@ int main() {
     test_fill_at_order_price_sell();
     test_depth_check_skips_undersized_level();
     test_depth_check_fills_when_sufficient();
+    test_depth_check_cumulative_fills();
+    test_depth_check_cumulative_insufficient();
     test_no_fill_when_not_crossing();
     test_cancel_all();
 
