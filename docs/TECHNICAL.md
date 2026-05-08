@@ -32,7 +32,7 @@ Execution uses the stated assumption:
 - Buy order fills when replayed best ask `<= order.price`.
 - Sell order fills when replayed best bid `>= order.price`.
 
-The fill price is the visible crossing price, bounded by the order price. Full fills are used; partial fills are a straightforward extension because the book quantities are already parsed.
+The fill executes at the resting order's own posted limit price (standard crypto maker matching — no price improvement for the maker). A full-fill-or-nothing depth check is applied: if the top-of-book displayed quantity is less than the order size, the order is skipped and remains open until the next snapshot or the next cancel-replace cycle. Full fills are used; partial fills are a straightforward extension because the book quantities are already parsed.
 
 Metrics are updated on every fill:
 
@@ -70,7 +70,8 @@ With the provided dataset (mid ~0.0103, σ ~9×10⁻⁵ per event, γ=0.08, κ=5
   biasing quotes to unwind.
 
 The optional microprice-blend extension replaces the pure mid-price reference with an
-imbalance-weighted blend (this is a custom modification, not from a specific published paper):
+imbalance-weighted blend (microprice as defined by Stoikov, "The micro-price: a high-frequency
+estimator of future prices", Quantitative Finance 18(12), 2018):
 
 ```text
 microprice = (ask × bid_size + bid × ask_size) / (bid_size + ask_size)

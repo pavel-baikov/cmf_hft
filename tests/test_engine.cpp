@@ -7,8 +7,11 @@
 
 static int g_pass = 0, g_fail = 0;
 
+// g_pass and g_fail count individual CHECK calls, not test functions.
 static void check(bool cond, const char* expr, const char* file, int line) {
-    if (!cond) {
+    if (cond) {
+        ++g_pass;
+    } else {
         std::fprintf(stderr, "  FAIL @ %s:%d: %s\n", file, line, expr);
         ++g_fail;
     }
@@ -18,11 +21,10 @@ static void check(bool cond, const char* expr, const char* file, int line) {
 #define CHECK_NEAR(a, b, eps)  check(std::abs((a)-(b)) < (eps), \
                                      #a " ≈ " #b, __FILE__, __LINE__)
 
-static bool begin_test(const char* name) {
+static void begin_test(const char* name) {
     std::printf("  %s\n", name);
-    return true;
 }
-#define TEST(name) begin_test(name); ++g_pass; /* will be corrected if a CHECK fails */
+#define TEST(name) begin_test(name);
 
 static hft::BookSnapshot make_book(double bid, double bid_qty,
                                    double ask, double ask_qty,
@@ -278,6 +280,6 @@ int main() {
 
     test_round_to_tick();
 
-    std::printf("\n%d passed, %d failed\n", g_pass, g_fail);
+    std::printf("\n%d checks passed, %d failed\n", g_pass, g_fail);
     return g_fail > 0 ? 1 : 0;
 }
