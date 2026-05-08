@@ -3,3 +3,5 @@ __MACOSX/
 .agents/
 .codex/
 MD.zip
+perf.data
+perf.data.old

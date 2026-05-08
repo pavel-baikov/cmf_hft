@@ -157,6 +157,8 @@ inline void validate_config(const EngineConfig& cfg) {
         throw std::runtime_error("microprice_weight must be in [0, 1]");
     if (cfg.volatility_window < 2.0)
         throw std::runtime_error("volatility_window must be >= 2");
+    if (cfg.horizon_seconds <= 0.0)
+        throw std::runtime_error("horizon_seconds must be > 0");
     if (cfg.quote_interval_events == 0)
         throw std::runtime_error("quote_interval_events must be > 0");
     if (cfg.levels == 0)

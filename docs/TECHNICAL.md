@@ -32,7 +32,7 @@ Execution uses the stated assumption:
 - Buy order fills when replayed best ask `<= order.price`.
 - Sell order fills when replayed best bid `>= order.price`.
 
-The fill executes at the resting order's own posted limit price (standard crypto maker matching — no price improvement for the maker). A full-fill-or-nothing depth check is applied: if the top-of-book displayed quantity is less than the order size, the order is skipped and remains open until the next snapshot or the next cancel-replace cycle. Full fills are used; partial fills are a straightforward extension because the book quantities are already parsed.
+The fill executes at the resting order's own posted limit price (standard crypto maker matching — no price improvement for the maker). A full-fill-or-nothing cumulative depth check is applied: the engine sums displayed quantity across every level whose price has crossed the order price (asks ≤ order price for buys; bids ≥ order price for sells). If the cumulative total is below the order size, the order is skipped and remains open until the next snapshot or the next cancel-replace cycle. Full fills are used; partial fills are a straightforward extension because the book quantities are already parsed.
 
 Metrics are updated on every fill:
 
@@ -92,7 +92,8 @@ Important parameters:
 - `gamma`: dimensionless inventory risk aversion; controls reservation skew per unit inventory.
 - `kappa`: dimensionless order arrival rate; primary control of quoted spread width. Higher kappa → narrower spread. Use the approximation `kappa ≈ gamma / (2 × target_relative_half_spread)` to calibrate.
 - `volatility_window`: rolling return window in events.
-- `horizon_seconds`: number of forward events T in the AS model (naming is historical; units are events).
+- `horizon_seconds`: number of forward events T in the AS model (naming is historical; units are events). Must be > 0.
+- `fee_bps`: maker fee in basis points applied to every fill. Negative values are supported and model maker rebates (a negative fee reduces the cost of a buy fill and increases the proceeds of a sell fill). Defaults to 0.
 - `microprice_weight`: blend weight for the extension (0 = pure mid, 1 = pure microprice).
 - `inventory_limit`: disables one side when inventory breaches the limit.
 

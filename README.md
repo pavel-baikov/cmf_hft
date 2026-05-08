@@ -41,7 +41,7 @@ Execution occurs when the replayed market crosses a resting quote:
 - Buy quote fills when `best_ask <= order_price`.
 - Sell quote fills when `best_bid >= order_price`.
 
-The fill executes at the resting order's own posted limit price (standard crypto maker matching — no price improvement). A full-fill-or-nothing depth check skips the order if the top-of-book displayed quantity is below the order size.
+The fill executes at the resting order's own posted limit price (standard crypto maker matching — no price improvement). A full-fill-or-nothing cumulative depth check sums displayed quantity across every LOB level that crossed the order price and skips the order if the total is below the order size.
 
 ## Notes
 

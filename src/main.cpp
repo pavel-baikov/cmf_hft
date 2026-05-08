@@ -48,8 +48,8 @@ void write_report(const EngineConfig& cfg, const Metrics& metrics,
     out << "Resting sells fill when the replayed best bid is greater than or equal to the order price. ";
     out << "Each fill executes the configured order quantity at the resting order's posted limit price "
            "(standard maker matching: no price improvement). "
-           "Orders are skipped when the top-of-book displayed quantity is below the order size "
-           "(full-fill-or-nothing depth check).\n";
+           "Orders fill only when the cumulative displayed quantity across all LOB levels that "
+           "crossed the order price meets the order size (full-fill-or-nothing cumulative depth check).\n";
 }
 
 }  // namespace
