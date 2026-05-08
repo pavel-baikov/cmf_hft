@@ -90,7 +90,7 @@ struct EngineConfig {
     double      order_quantity          = 5000.0;
     double      fee_bps                 = 0.0;
     double      gamma                   = 0.08;
-    double      kappa                   = 1.5;
+    double      kappa                   = 50000.0;
     double      volatility_window       = 500.0;
     double      horizon_seconds         = 60.0;
     double      microprice_weight       = 0.65;

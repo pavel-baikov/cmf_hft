@@ -44,28 +44,37 @@ Metrics are updated on every fill:
 
 ## Strategy Model
 
-The baseline strategy follows Avellaneda-Stoikov style market making:
+The baseline strategy follows Avellaneda-Stoikov (2008) market making:
 
-- Estimate rolling volatility from log mid-price returns.
-- Compute a reservation price that penalizes inventory.
-- Compute a half spread from risk and liquidity terms.
-- Quote bid and ask around the reservation price.
+- Estimate rolling volatility σ from per-event log mid-price returns.
+- Compute a reservation price that penalizes inventory exposure.
+- Compute a half-spread from risk and liquidity terms.
+- Quote bid and ask symmetrically around the reservation price.
 
-The baseline reference price is the mid-price:
+All intermediate formula terms are computed in **log-return (relative, dimensionless) space** and converted to absolute price units at the end by multiplying by the reference price. σ is the per-event log-return standard deviation; γ and κ are dimensionless parameters; `horizon_seconds` is the number of forward events T in the AS model.
 
 ```text
-reference = mid
-reservation = reference - inventory * gamma * sigma^2 * horizon
+reference   = mid                                   (baseline)
+reservation = reference × (1 − q × γ × σ² × T)     (inventory skew, price units)
+
+risk_rel    = γ × σ² × T                            (relative)
+liq_rel     = (2/γ) × ln(1 + γ/κ)                  (relative)
+half_spread = max(market_spread/2,
+                  0.5 × (risk_rel + liq_rel) × reference)   (absolute, price units)
 ```
+
+With the provided dataset (mid ~0.0103, σ ~9×10⁻⁵ per event, γ=0.08, κ=50000, T=60):
+- `liq_rel ≈ 4×10⁻⁵`, `half_spread ≈ 2×10⁻⁷` (≈ 2 ticks)
+- Per `order_quantity` of inventory, the reservation shifts ~2 ticks, biasing quotes to unwind.
 
 The extension replaces the pure mid-price reference with a microprice blend:
 
 ```text
-microprice = (ask * bid_size + bid * ask_size) / (bid_size + ask_size)
-reference = (1 - w) * mid + w * microprice
+microprice = (ask × bid_size + bid × ask_size) / (bid_size + ask_size)
+reference  = (1 − w) × mid + w × microprice
 ```
 
-This adds top-of-book imbalance information to the quoted center. When bid size dominates ask size, microprice moves toward the ask, and vice versa.
+When bid size dominates ask size, microprice moves toward the ask (upward pressure), shifting both reservation and quotes in that direction to reduce adverse selection.
 
 ## Configuration
 
@@ -75,11 +84,11 @@ Important parameters:
 
 - `quote_interval_events`: number of snapshots between quote refreshes.
 - `order_quantity`: simulated quote size.
-- `gamma`: inventory risk aversion.
-- `kappa`: liquidity shape parameter in the spread formula.
-- `volatility_window`: rolling return window.
-- `horizon_seconds`: risk horizon scalar.
-- `microprice_weight`: blend weight for the extension.
+- `gamma`: dimensionless inventory risk aversion; controls reservation skew per unit inventory.
+- `kappa`: dimensionless order arrival rate; primary control of quoted spread width. Higher kappa → narrower spread. Use the approximation `kappa ≈ gamma / (2 × target_relative_half_spread)` to calibrate.
+- `volatility_window`: rolling return window in events.
+- `horizon_seconds`: number of forward events T in the AS model (naming is historical; units are events).
+- `microprice_weight`: blend weight for the extension (0 = pure mid, 1 = pure microprice).
 - `inventory_limit`: disables one side when inventory breaches the limit.
 
 ## Roadmap

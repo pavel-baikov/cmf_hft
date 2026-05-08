@@ -69,13 +69,21 @@ public:
               + cfg_.microprice_weight * book.microprice()
             : book.mid();
 
+        // All intermediate terms are computed in log-return (relative, fractional) space.
+        // sigma is the per-event log-return std-dev; gamma and kappa are dimensionless.
+        // horizon_seconds is treated as a number of forward events (T in the AS model).
         const double horizon_events = std::max(1.0, cfg_.horizon_seconds);
-        const double reservation    = reference - inventory * cfg_.gamma * sigma2 * horizon_events;
-        const double risk_spread    = cfg_.gamma * sigma2 * horizon_events;
-        const double liquidity_spread =
+
+        // Reservation price: skew reference away from inventory using the risk penalty.
+        // Multiply the relative adjustment by reference to produce a price-unit result.
+        const double reservation = reference * (1.0 - inventory * cfg_.gamma * sigma2 * horizon_events);
+
+        // Spread components in relative space, then scaled to absolute price units.
+        const double risk_spread_rel = cfg_.gamma * sigma2 * horizon_events;
+        const double liq_spread_rel  =
             (2.0 / cfg_.gamma) * std::log(1.0 + cfg_.gamma / std::max(1e-9, cfg_.kappa));
         const double half_spread = std::max(book.spread() * 0.5,
-                                            0.5 * (risk_spread + liquidity_spread * cfg_.tick_size));
+                                            0.5 * (risk_spread_rel + liq_spread_rel) * reference);
 
         QuotePair q;
         q.reservation_price = reservation;
