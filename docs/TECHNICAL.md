@@ -105,3 +105,4 @@ Important parameters:
 - Calibrate `gamma`, `kappa`, and quote refresh interval with walk-forward splits.
 - Add benchmark strategies and parameter sweeps.
 - Export per-fill and per-snapshot equity curves for deeper analysis.
+- Replace the naive variance formula in `RollingVolatility` with Welford's online algorithm to eliminate potential catastrophic cancellation when drift is large relative to volatility.
