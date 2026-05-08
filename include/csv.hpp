@@ -1,33 +1,39 @@
 #pragma once
 
+#include <array>
 #include <charconv>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace hft {
 
-inline std::vector<std::string_view> split_csv_line(std::string_view line) {
-    std::vector<std::string_view> out;
+// 2 index columns + 25 levels * 4 (ask_price, ask_qty, bid_price, bid_qty)
+static constexpr std::size_t MAX_CSV_FIELDS = 102;
+
+// Splits into caller-supplied array. Returns number of fields written.
+// O(n) in line length, zero heap allocations.
+inline std::size_t split_csv_line(std::string_view line,
+                                  std::array<std::string_view, MAX_CSV_FIELDS>& out) {
+    std::size_t count = 0;
     std::size_t start = 0;
-    while (start <= line.size()) {
+    while (count < out.size()) {
         const std::size_t comma = line.find(',', start);
         if (comma == std::string_view::npos) {
-            out.emplace_back(line.substr(start));
+            if (start <= line.size()) out[count++] = line.substr(start);
             break;
         }
-        out.emplace_back(line.substr(start, comma - start));
+        out[count++] = line.substr(start, comma - start);
         start = comma + 1;
     }
-    return out;
+    return count;
 }
 
 inline double parse_double(std::string_view value) {
     double result = 0.0;
     const auto* first = value.data();
-    const auto* last = value.data() + value.size();
+    const auto* last  = value.data() + value.size();
     const auto parsed = std::from_chars(first, last, result);
     if (parsed.ec != std::errc() || parsed.ptr != last) {
         throw std::runtime_error("invalid floating point value: " + std::string(value));
@@ -38,7 +44,7 @@ inline double parse_double(std::string_view value) {
 inline std::int64_t parse_i64(std::string_view value) {
     std::int64_t result = 0;
     const auto* first = value.data();
-    const auto* last = value.data() + value.size();
+    const auto* last  = value.data() + value.size();
     const auto parsed = std::from_chars(first, last, result);
     if (parsed.ec != std::errc() || parsed.ptr != last) {
         throw std::runtime_error("invalid integer value: " + std::string(value));
